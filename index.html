@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des clients</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+  </head>
+  <body>
+    <div class="container">
+      <header class="row">
+        <h1>Gestion des clients</h1>
+      </header>
+      <hr>
+      <section class="row">
+        <h2>Ajouter / Modifier un client</h2>
+        <form class="d-flex justify-content-center">
+          <input type="hidden" id="id" name="id">
+          <input type="text" class="form-control" id="nom" placeholder="nom" name="nom">
+          <input type="text" class="form-control mx-4" id="tel" placeholder="tel" name="tel">
+          <input type="submit" class="btn btn-outline-dark">
+        </form>
+      </section>
+      <hr>
+      <section class="row">
+        <h2>Liste de clients</h2>
+        <div class="row clients">
+          pas de client pour l'instant
+        </div>
+      </section>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.9.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.9.1/firebase-database.js"></script>
+    <script>
+      var firebaseConfig = {
+        apiKey: "AIzaSyC-4wDNY-QjofBdzbN_Syu7KGtEpvNrbLU",
+        authDomain: "doranco-e7a56.firebaseapp.com",
+        databaseURL:
+          "https://doranco-e7a56-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "doranco-e7a56",
+        storageBucket: "doranco-e7a56.appspot.com",
+        messagingSenderId: "515455172916",
+        appId: "1:515455172916:web:fb23c1634a17f78df7a561",
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
+    <script>
+
+        // ajouter un nouvel enregistrement dans 
+        // remplir le formulaire => remplir la base 
+        document.querySelector("form").addEventListener("submit", e => {
+          e.preventDefault();
+          let id = e.target.id.value;
+          let nom = e.target.nom.value;
+          let tel = e.target.tel.value;
+
+          if(id.length == 0){
+            // ajout
+            const refDB = firebase.database().ref("/clients"); // permet de sélectionner // créer une table clients (si n'existe pas)
+            const nouveauClient = refDB.push(); // id
+            nouveauClient.set({
+              nom : nom,
+              tel : tel 
+            });
+          } else {
+            // modification
+            const refDB = firebase.database().ref(`/clients/${id}`);
+            let clientModifie = {
+              nom : nom ,
+              tel : tel 
+            }
+            refDB.update(clientModifie);
+          }
+          e.target.reset(); // vider le formulaire 
+          e.target.id.value = ""; // vider le champ id 
+        });
+
+        // afficher la liste des clients présents dans la base de données 
+        
+        window.addEventListener( "DOMContentLoaded", ( ) => {
+          let refDB = firebase.database().ref("/clients");
+          refDB.on("value",  clients  => { 
+            if(clients.val() == null){
+              console.log(clients)
+            }
+            let data = clients.val(); // { id :{},id :{} }
+            let html = "";
+            for(let id in data){
+              html += `<article class="col-4">
+                  <ul class="list-unstyled">
+                    <li>nom : ${ data[id].nom }</li>
+                    <li>tel : ${ data[id].tel }</li>
+                    <li>
+              <button class="btn btn-outline-warning btn-sm" onclick="modifier('${id}')">modifier</button>  
+              <button class="btn btn-outline-danger btn-sm" onclick="supprimer('${id}')">supprimer</button>  
+                    </li>
+                  </ul>
+                </article>`
+            }
+            document.querySelector(".clients").innerHTML = html;
+            // un observable => RxJS 
+          });
+        });
+
+        function supprimer (id){
+          firebase.database().ref(`/clients/${id}`).remove();
+          // SQL / NoSQL  ( json-server / mongoDB / firebase )
+          // Atomicity, Consistency, Isolation, Durability
+          // SQL => Consistency = la base est toujours cohérente : colonne (type) // clé primaire // liaison
+          //                                                        transaction  
+          //                    plus de calcul au niveau de la machine => un peu lent 
+
+          // NoSQL => Atomicity => très rapide => 
+          //                    moins cohérente qu'une base sql 
+        }
+
+        function modifier(id){
+          const refDB = firebase.database().ref(`/clients/${id}`);
+          refDB.once("value",  client => {
+            document.querySelector("#id").value = id ;
+            document.querySelector("#nom").value = client.val().nom ;
+            document.querySelector("#tel").value = client.val().tel ;
+          })
+        }
+
+    </script>
+  </body>
+</html>
